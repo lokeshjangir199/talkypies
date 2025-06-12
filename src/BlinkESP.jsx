@@ -7,13 +7,13 @@ export default function BlinkESP() {
   const connectToESP32 = async () => {
     try {
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ name: "ESP32-Blinker" }],
-        optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"]
+        filters: [{ name: "Blinker_1" }],
+        optionalServices: ["2fe3c548-43cf-4fa0-b3b4-67278f0e3e7c"]
       });
 
       const server = await device.gatt.connect();
-      const service = await server.getPrimaryService("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
-      const char = await service.getCharacteristic("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
+      const service = await server.getPrimaryService("2fe3c548-43cf-4fa0-b3b4-67278f0e3e7c");
+      const char = await service.getCharacteristic("2fe3c549-43cf-4fa0-b3b4-67278f0e3e7c");
 
       setCharacteristic(char);
       setConnected(true);

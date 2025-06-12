@@ -41,6 +41,9 @@ const VoiceWidget = () => {
   // Initialize VAPI with public key for client SDK
   const vapi = new Vapi(vapiPublicKey);
 
+
+  const supportBtnRef = useRef(null); // for esp button
+
   const {
     keywordDetection,
     isLoaded,
@@ -178,27 +181,34 @@ const VoiceWidget = () => {
     };
   }, []);
 
-  const connectToESP32 = async () => {
-    try {
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ name: "ESP32-Blinker" }],
-        optionalServices: ["6e400001-b5a3-f393-e0a9-e50e24dcca9e"],
-      });
+const connectToESP32 = async () => {
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ name: "Blinker_1" }],
+      optionalServices: ["2fe3c548-43cf-4fa0-b3b4-67278f0e3e7c"]
+    });
 
-      const server = await device.gatt.connect();
-      const service = await server.getPrimaryService(
-        "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
-      );
-      const char = await service.getCharacteristic(
-        "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
-      );
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService("2fe3c548-43cf-4fa0-b3b4-67278f0e3e7c");
+    const char = await service.getCharacteristic("2fe3c549-43cf-4fa0-b3b4-67278f0e3e7c");
 
-      setEspCharacteristic(char);
-      console.log("ESP32 connected.");
-    } catch (err) {
-      console.error("ESP32 connection failed:", err);
-    }
-  };
+    await char.startNotifications(); // ✅ Enable notifications
+
+    char.addEventListener("characteristicvaluechanged", (event) => {
+      const value = new TextDecoder().decode(event.target.value);
+      console.log("Received from ESP:", value);
+      if (value === "SUPPORT") {
+        supportBtnRef.current?.click(); // ✅ Trigger button press
+      }
+    });
+
+    setCharacteristic(char);
+    setConnected(true);
+    console.log("Connected to ESP32");
+  } catch (err) {
+    console.error("Connection failed", err);
+  }
+};
 
   const sendBlinkCommand = async () => {
     try {
@@ -553,16 +563,21 @@ useEffect(() => {
           </p>
         </div>
 
+        <button onClick={connectToESP32}>
+            Connect to ESP32
+        </button>
+
+
         <div className="flex justify-center">
           <button
+            ref={supportBtnRef} // ✅ ADD THIS LINE
             onClick={toggleAssistant}
-            className={`rounded-full p-4 text-white shadow-lg transition-transform duration-300 ease-in-out ${
-              isAssistantOn
+            className={`rounded-full p-4 text-white shadow-lg transition-transform duration-300 ease-in-out ${isAssistantOn
                 ? "bg-red-600 hover:bg-red-700"
                 : isLoading
-                ? "bg-yellow-500"
-                : "bg-green-600 hover:bg-green-700"
-            }`}
+                  ? "bg-yellow-500"
+                  : "bg-green-600 hover:bg-green-700"
+              }`}
             disabled={isLoading}
           >
             {isLoading ? (
@@ -573,6 +588,7 @@ useEffect(() => {
               <FiPhoneCall className="w-8 h-8 animate-pulse" />
             )}
           </button>
+
         </div>
       </div>
     </div>
